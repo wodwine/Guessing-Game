@@ -6,7 +6,7 @@ const assert = require('assert');
 const url = 'mongodb://localhost:27017';
 
 // Database Name
-const dbName = 'pantip';
+const dbName = 'GuessingGame';
 // Create a new MongoClient
 const client = new MongoClient(url);
 
