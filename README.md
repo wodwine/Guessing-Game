@@ -19,4 +19,4 @@ const dbName = 'GuessingGame';
 
 4. run the script : node server.js
 
-5. The server will use port 80 --> localhost:80
+5. The server will use port 3000 --> localhost:3000
