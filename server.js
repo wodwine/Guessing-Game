@@ -33,29 +33,95 @@ client.connect(function(err) {
   console.log("Connected successfully to server");
 
   const db = client.db(dbName);
-  const col = db.collection('students');
+  const col = db.collection('game');
+
+  let gameStat={ 
+    stage: 0,
+    question: ["_", "_", "_", "_"],
+    guessing: ["_", "_", "_", "_"],
+    answer: ["_", "_", "_", "_"],
+    score: 0,
+    fail: 0,
+    step:4
+  };
 
   app.get('/', function (req, res) {
-    res.send('My Guessing Game')
-  })
+    res.render('home.ejs',gameStat);
+  });
+
+  app.post('/start', (req,res)=>{
+    function randomAlphabet(length) {
+      var result           = '';
+      var characters       = 'ABCD';
+      var charactersLength = characters.length;
+      for ( var i = 0; i < length; i++ ) {
+         result += characters.charAt(Math.floor(Math.random() * charactersLength));
+      }
+      return result;
+    }
+    gameStat={ 
+      stage: 0,
+      question: [randomAlphabet(1), randomAlphabet(1), randomAlphabet(1), randomAlphabet(1)],
+      guessing: ["_", "_", "_", "_"],
+      answer: ["_", "_", "_", "_"],
+      score: 0,
+      fail: 0,
+      step:4
+    };
+      col.insertOne(gameStat, (err,docs)=>{
+        col.updateOne({stage: 0}, {$inc: {stage: 1}});
+        gameStat.stage=1;
+        res.redirect('/');
+    });
+  });
+
+  app.post('/guess',(req,res)=>{
+    const choose = req.body.alphabet
+    col.updateOne({ guessing: "_" }, 
+    { $set: { 'guessing.$': choose }, $inc: { step: -1} });
+    for(let i=0;i<4;i++){
+      if(gameStat.guessing[i]=="_"){
+        gameStat.guessing[i]=choose;
+        break;
+      };
+    };
+    res.redirect('/')
+  });
+
+  app.post('/finish', (req,res)=>{
+    gameStat.fail+=1;
+    col.updateOne({fail: gameStat.fail-1}, {$inc: {fail: gameStat.fail}});
+    for(let i=0;i<4;i++){
+      if(gameStat.guessing[i]==gameStat.question[i]){
+        gameStat.answer[i]=gameStat.guessing[i];
+      }
+    }
+    gameStat.guessing=["_", "_", "_", "_"];
+    let i;
+    for(i=0;i<4;i++){
+      if(gameStat.answer[i]!=gameStat.question[i]){
+        break;
+      }
+    }
+    if(i==4){
+        gameStat.stage=2;
+        gameStat.score=21-gameStat.fail;
+        col.updateOne({stage: 1}, {$inc: {stage: 2}});
+        col.updateOne({score: 0}, {$inc: {score: gameStat.score}});
+      }
+    res.redirect('/')
+  });
+
+  app.post('/home', (req,res)=>{
+    gameStat.stage=0;
+    res.redirect('/')
+  });
+
 
   app.listen(PORT, function() {
     console.log(`Example app listening on port ${PORT}!`)
-  })
-
-
-
-  // app.get('/', (req, res) => {
-  //   // Get first two documents that match the query
-  //   col.find({}).limit(1).toArray(function(err, docs) {
-  //     assert.equal(null, err);
-      
-  //     //CODE HERE
-  //   });
-  // });
-
-
+  });
 });
 
-app.listen(PORT, HOST);
-console.log(`Running on http://${HOST}:${PORT}`);
+  app.listen(PORT, HOST);
+  console.log(`Running on http://${HOST}:${PORT}`);
